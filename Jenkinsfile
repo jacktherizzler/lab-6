@@ -38,12 +38,11 @@ pipeline {
 
         stage('Read Accuracy') {
             steps {
+                sh "python3 -c \"import json; print(json.load(open('app/artifacts/metrics.json'))['accuracy'])\" > .current_accuracy"
                 script {
-                    env.CURRENT_ACCURACY = sh(
-                        script: "python3 -c \"import json; print(json.load(open('app/artifacts/metrics.json'))['accuracy'])\"",
-                        returnStdout: true
-                    ).trim()
-                    echo "Current accuracy: ${env.CURRENT_ACCURACY}"
+                    def currentValue = readFile('.current_accuracy').trim()
+                    env.CURRENT_ACCURACY = currentValue
+                    echo "Current accuracy: ${currentValue}"
                 }
             }
         }
@@ -52,8 +51,9 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'best-accuracy', variable: 'BEST_ACCURACY')]) {
                     script {
+                        def currentValue = readFile('.current_accuracy').trim()
                         def decision = sh(
-                            script: "python3 -c \"current=float('${env.CURRENT_ACCURACY}'); baseline=float('${BEST_ACCURACY}'); print('true' if current > baseline else 'false')\"",
+                            script: "python3 -c \"current=float('${currentValue}'); baseline=float('${BEST_ACCURACY}'); print('true' if current > baseline else 'false')\"",
                             returnStdout: true
                         ).trim()
                         env.SHOULD_DEPLOY = decision
