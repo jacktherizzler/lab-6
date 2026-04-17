@@ -40,7 +40,7 @@ pipeline {
             steps {
                 script {
                     env.CURRENT_ACCURACY = sh(
-                        script: "jq -r '.accuracy' app/artifacts/metrics.json",
+                        script: "python3 -c \"import json; print(json.load(open('app/artifacts/metrics.json'))['accuracy'])\"",
                         returnStdout: true
                     ).trim()
                     echo "Current accuracy: ${env.CURRENT_ACCURACY}"
@@ -53,13 +53,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'best-accuracy', variable: 'BEST_ACCURACY')]) {
                     script {
                         def decision = sh(
-                            script: """
-                                python3 - <<'PY'
-                                current = float('${env.CURRENT_ACCURACY}')
-                                baseline = float('${BEST_ACCURACY}')
-                                print('true' if current > baseline else 'false')
-                                PY
-                            """,
+                            script: "python3 -c \"current=float('${env.CURRENT_ACCURACY}'); baseline=float('${BEST_ACCURACY}'); print('true' if current > baseline else 'false')\"",
                             returnStdout: true
                         ).trim()
                         env.SHOULD_DEPLOY = decision
